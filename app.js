@@ -1,6 +1,5 @@
-﻿const PAGE_SIZE = 30;
+const PAGE_SIZE = 30;
 const PRODUCT_FILE = "DATA BARANG.csv";
-const FALLBACK_IMAGE = "images/no-image.webp";
 
 let products = [];
 let cart = new Map();
@@ -95,6 +94,30 @@ function normalizeHeader(value) {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+}
+
+function parseQuantity(value) {
+  const normalized = value.trim().replace(/\s/g, "");
+  if (!normalized) return NaN;
+
+  const lastComma = normalized.lastIndexOf(",");
+  const lastDot = normalized.lastIndexOf(".");
+  let numeric = normalized;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalSeparator = lastComma > lastDot ? "," : ".";
+    const groupingSeparator = decimalSeparator === "," ? /\./g : /,/g;
+    numeric = normalized.replace(groupingSeparator, "").replace(decimalSeparator, ".");
+  } else {
+    numeric = normalized.replace(",", ".");
+  }
+
+  const quantity = Number(numeric);
+  return Number.isFinite(quantity) && quantity >= 0 ? quantity : NaN;
+}
+
+function formatQuantity(quantity) {
+  return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 3 }).format(quantity);
 }
 
 function parsePrice(value) {
@@ -284,7 +307,6 @@ function renderProducts() {
           <img
             class="product-image"
             src="${imagePath}"
-            data-fallback="${FALLBACK_IMAGE}"
             alt="${escapeHtml(product.name)}"
             loading="lazy"
           />
@@ -311,16 +333,9 @@ function renderProducts() {
 
   productGrid.querySelectorAll(".product-image").forEach((image) => {
     image.addEventListener("error", () => {
-      if (!image.dataset.usingFallback) {
-        image.dataset.usingFallback = "true";
-        image.src = image.dataset.fallback;
-        image.alt = "Gambar produk tidak tersedia";
-        return;
-      }
-
       image.classList.add("image-unavailable");
       image.removeAttribute("src");
-    }, { once: false });
+    }, { once: true });
   });
 
   loadMoreButton.hidden = !products.length || displayedProducts.length >= matchingProducts.length;
@@ -343,12 +358,20 @@ function renderCart() {
         <div class="cart-item-info">
           <strong>${escapeHtml(product.name)}</strong>
           <span>${escapeHtml(product.code)} - ${formatPrice(unitPrice)} / ${escapeHtml(product.unit)}</span>
-          <span>Jumlah: ${quantity} ${escapeHtml(product.unit)}</span>
+          <span>Jumlah: ${formatQuantity(quantity)} ${escapeHtml(product.unit)}</span>
           <b>${formatPrice(lineTotal)}</b>
         </div>
         <div class="quantity-control" aria-label="Jumlah ${escapeHtml(product.name)}">
           <button type="button" data-cart-change="-1" data-id="${product.id}" aria-label="Kurangi jumlah">-</button>
-          <output>${quantity}</output>
+          <input
+            class="quantity-input"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            value="${formatQuantity(quantity)}"
+            data-cart-quantity="${product.id}"
+            aria-label="Jumlah ${escapeHtml(product.name)} dalam ${escapeHtml(product.unit)}"
+          />
           <button type="button" data-cart-change="1" data-id="${product.id}" aria-label="Tambah jumlah">+</button>
         </div>
       </article>
@@ -357,7 +380,7 @@ function renderCart() {
 
   emptyCartMessage.hidden = cartProducts.length > 0;
   document.querySelector("#cartTotal").textContent = formatPrice(total);
-  document.querySelector("#cartCount").textContent = totalItems;
+  document.querySelector("#cartCount").textContent = formatQuantity(totalItems);
   document.querySelector("#openCartButton").setAttribute(
     "aria-label",
     `Buka keranjang, ${totalItems} produk`,
@@ -377,6 +400,30 @@ function changeQuantity(productId, change) {
   else cart.set(productId, nextQuantity);
   render();
 }
+
+cartItems.addEventListener("focusin", (event) => {
+  if (event.target.matches("[data-cart-quantity]")) event.target.select();
+});
+
+cartItems.addEventListener("change", (event) => {
+  if (!event.target.matches("[data-cart-quantity]")) return;
+  const productId = Number(event.target.dataset.cartQuantity);
+  const quantity = parseQuantity(event.target.value);
+  if (Number.isNaN(quantity)) {
+    renderCart();
+    return;
+  }
+  if (quantity === 0) cart.delete(productId);
+  else cart.set(productId, quantity);
+  render();
+});
+
+cartItems.addEventListener("keydown", (event) => {
+  if (event.target.matches("[data-cart-quantity]") && event.key === "Enter") {
+    event.preventDefault();
+    event.target.blur();
+  }
+});
 
 function applySearch() {
   const nextSearchTerm = searchInput.value.trim().toLocaleLowerCase("id-ID");
