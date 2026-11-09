@@ -134,6 +134,38 @@ button {
   line-height: 1.2;
 }
 
+@media (max-width: 420px) {
+  .site-header {
+    gap: 8px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .branch-menu-button,
+  .cart-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand {
+    gap: 7px;
+  }
+
+  .brand-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand-title {
+    font-size: 11px;
+    letter-spacing: -0.35px;
+  }
+
+  .brand-subtitle {
+    font-size: 9px;
+  }
+}
+
 .cart-button {
   position: relative;
   display: grid;
@@ -469,6 +501,94 @@ main {
   display: none;
 }
 
+.back-to-top-button {
+  position: fixed;
+  z-index: 3;
+  right: max(18px, calc((100vw - 1120px) / 2));
+  bottom: 20px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--blue);
+  box-shadow: 0 4px 14px #17192340;
+  cursor: pointer;
+}
+
+.back-to-top-button[hidden] {
+  display: none;
+}
+
+.back-to-top-button svg {
+  width: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.suggestion-dialog {
+  width: min(100% - 32px, 380px);
+  padding: 20px;
+  border: 1px solid #e9ebef;
+  border-radius: 18px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 20px 70px #17192340;
+}
+
+.suggestion-dialog::backdrop {
+  background: #15182180;
+  backdrop-filter: blur(2px);
+}
+
+.suggestion-dialog .dialog-heading {
+  margin-bottom: 8px;
+}
+
+.suggestion-dialog .dialog-heading h2 {
+  font-size: 18px;
+}
+
+.suggestion-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.suggestion-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.suggestion-primary-button,
+.suggestion-secondary-button {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.suggestion-primary-button {
+  flex: 1;
+  color: #fff;
+  background: var(--blue);
+}
+
+.suggestion-secondary-button {
+  color: #555b65;
+  background: #f1f2f4;
+}
+
 .product-card {
   min-width: 0;
   overflow: hidden;
@@ -727,6 +847,28 @@ main {
   border-bottom: 1px solid var(--line);
 }
 
+.cart-item-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.remove-cart-item-button {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: #282b32;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .cart-item-info {
   display: grid;
   min-width: 0;
@@ -817,6 +959,25 @@ main {
 .cart-total strong {
   color: var(--blue);
   font-size: 18px;
+}
+
+.whatsapp-order-button {
+  display: flex;
+  min-height: 45px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15px;
+  border-radius: 10px;
+  color: #fff;
+  background: #159447;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.whatsapp-order-button[aria-disabled="true"] {
+  background: #a7adb7;
+  cursor: not-allowed;
 }
 
 .visually-hidden {

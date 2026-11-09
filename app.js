@@ -3,13 +3,13 @@ const BRANCHES = [
   {
     id: "sukanagalih",
     name: "Sukanagalih",
-    storeTitle: "TTS Toko Tiga Sekawan Sukanagalih",
+    storeTitle: "Toko Tiga Sekawan Sukanagalih",
     productFile: "SUKANAGALIH DATA BARANG.csv",
   },
   {
     id: "simpang1",
     name: "Simpang 1",
-    storeTitle: "TTS Toko Tiga Sekawan Simpang 1",
+    storeTitle: "Toko Tiga Sekawan Simpang 1",
     productFile: "DATA BARANG.csv",
   },
 ];
@@ -39,6 +39,9 @@ const loadMoreButton = document.querySelector("#loadMoreButton");
 const cartDialog = document.querySelector("#cartDialog");
 const cartItems = document.querySelector("#cartItems");
 const emptyCartMessage = document.querySelector("#emptyCartMessage");
+const categorySuggestionDialog = document.querySelector("#categorySuggestionDialog");
+const whatsappOrderButton = document.querySelector("#whatsappOrderButton");
+const backToTopButton = document.querySelector("#backToTopButton");
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -278,6 +281,14 @@ function getMatchingProducts() {
   ));
 }
 
+function getSearchMatchesAcrossCategories() {
+  return products.filter((product) => (
+    !searchTerm
+    || product.code.toLocaleLowerCase("id-ID").includes(searchTerm)
+    || product.name.toLocaleLowerCase("id-ID").includes(searchTerm)
+  ));
+}
+
 function renderCategoryFilters() {
   const categoryCounts = new Map();
   for (const product of products) {
@@ -444,18 +455,26 @@ function renderCart() {
           <span>Jumlah: ${formatQuantity(quantity)} ${escapeHtml(product.unit)}</span>
           <b>${formatPrice(lineTotal)}</b>
         </div>
-        <div class="quantity-control" aria-label="Jumlah ${escapeHtml(product.name)}">
-          <button type="button" data-cart-change="-1" data-id="${product.id}" aria-label="Kurangi jumlah">-</button>
-          <input
-            class="quantity-input"
-            type="text"
-            inputmode="decimal"
-            autocomplete="off"
-            value="${formatQuantity(quantity)}"
-            data-cart-quantity="${product.id}"
-            aria-label="Jumlah ${escapeHtml(product.name)} dalam ${escapeHtml(product.unit)}"
-          />
-          <button type="button" data-cart-change="1" data-id="${product.id}" aria-label="Tambah jumlah">+</button>
+        <div class="cart-item-actions">
+          <div class="quantity-control" aria-label="Jumlah ${escapeHtml(product.name)}">
+            <button type="button" data-cart-change="-1" data-id="${product.id}" aria-label="Kurangi jumlah">-</button>
+            <input
+              class="quantity-input"
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              value="${formatQuantity(quantity)}"
+              data-cart-quantity="${product.id}"
+              aria-label="Jumlah ${escapeHtml(product.name)} dalam ${escapeHtml(product.unit)}"
+            />
+            <button type="button" data-cart-change="1" data-id="${product.id}" aria-label="Tambah jumlah">+</button>
+          </div>
+          <button
+            class="remove-cart-item-button"
+            type="button"
+            data-cart-remove="${product.id}"
+            aria-label="Hapus ${escapeHtml(product.name)} dari keranjang"
+          >×</button>
         </div>
       </article>
     `;
@@ -468,6 +487,25 @@ function renderCart() {
     "aria-label",
     `Buka keranjang, ${cartProducts.length} jenis barang`,
   );
+
+  const activeBranch = BRANCHES.find((branch) => branch.id === activeBranchId);
+  const orderLines = cartProducts.map((product, index) => {
+    const quantity = getCartQuantity(product.id);
+    const unitPrice = getPriceTier(product, quantity).price;
+    const lineTotal = unitPrice * quantity;
+    return `*${index + 1}. ${product.name} - ${formatQuantity(quantity)} ${product.unit} - Subtotal: ${formatPrice(lineTotal)}*`;
+  });
+  const orderMessage = [
+    `HALO TOKO TIGA SEKAWAN ${activeBranch.name.toLocaleUpperCase("id-ID")} saya pesan dengan rincian di bawah ini :`,
+    "",
+    ...orderLines,
+    "",
+    `*TOTAL: ${formatPrice(total)}*`,
+  ].join("\n");
+  whatsappOrderButton.href = cartProducts.length
+    ? `https://wa.me/6285559156569?text=${encodeURIComponent(orderMessage)}`
+    : "#";
+  whatsappOrderButton.setAttribute("aria-disabled", String(cartProducts.length === 0));
 }
 
 function render() {
@@ -552,6 +590,7 @@ searchInput.addEventListener("keydown", (event) => {
     event.preventDefault();
     applySearch();
     searchInput.blur();
+    showCategorySuggestionIfRelevant();
   }
 });
 
@@ -576,6 +615,7 @@ categoryFilters.addEventListener("click", (event) => {
   visibleLimit = PAGE_SIZE;
   renderCategoryFilters();
   renderProducts();
+  showCategorySuggestionIfRelevant();
 });
 
 productGrid.addEventListener("click", (event) => {
@@ -603,6 +643,13 @@ productGrid.addEventListener("click", (event) => {
 });
 
 cartItems.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-cart-remove]");
+  if (removeButton) {
+    cart.delete(Number(removeButton.dataset.cartRemove));
+    render();
+    return;
+  }
+
   const changeButton = event.target.closest("[data-cart-change]");
   if (changeButton) {
     changeQuantity(Number(changeButton.dataset.id), Number(changeButton.dataset.cartChange));
@@ -613,6 +660,37 @@ document.querySelector("#openCartButton").addEventListener("click", () => cartDi
 document.querySelector("#closeCartButton").addEventListener("click", () => cartDialog.close());
 cartDialog.addEventListener("click", (event) => {
   if (event.target === cartDialog) cartDialog.close();
+});
+whatsappOrderButton.addEventListener("click", (event) => {
+  if (whatsappOrderButton.getAttribute("aria-disabled") === "true") event.preventDefault();
+});
+
+function showCategorySuggestionIfRelevant() {
+  if (
+    activeCategory !== null
+    && searchTerm
+    && getMatchingProducts().length === 0
+    && getSearchMatchesAcrossCategories().length > 0
+    && !categorySuggestionDialog.open
+  ) {
+    categorySuggestionDialog.showModal();
+  }
+}
+
+document.querySelector("#closeCategorySuggestionButton").addEventListener("click", () => {
+  categorySuggestionDialog.close();
+});
+document.querySelector("#dismissCategorySuggestionButton").addEventListener("click", () => {
+  categorySuggestionDialog.close();
+});
+categorySuggestionDialog.addEventListener("click", (event) => {
+  if (event.target === categorySuggestionDialog) categorySuggestionDialog.close();
+});
+document.querySelector("#showAllItemsButton").addEventListener("click", () => {
+  activeCategory = null;
+  visibleLimit = PAGE_SIZE;
+  render();
+  categorySuggestionDialog.close();
 });
 
 function updateBranchSelection() {
@@ -711,6 +789,13 @@ branchDialog.addEventListener("click", (event) => {
   branchDialog.close();
   loadProductFile(branch);
 });
+
+document.querySelector("#backToTopButton").addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+window.addEventListener("scroll", () => {
+  backToTopButton.hidden = window.scrollY < 500;
+}, { passive: true });
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

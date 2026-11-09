@@ -30,10 +30,10 @@
           <path d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <a class="brand" href="#" aria-label="TTS Toko Tiga Sekawan">
+      <a class="brand" href="#" aria-label="Toko Tiga Sekawan Simpang 1">
         <img class="brand-logo" src="Aset/LOGO%20TTS.png" alt="" />
         <span class="brand-copy">
-          <span class="brand-title" id="brandTitle">TTS Toko Tiga Sekawan Simpang 1</span>
+          <span class="brand-title" id="brandTitle">Toko Tiga Sekawan Simpang 1</span>
           <span class="brand-subtitle">Toko sembako, tidak menjual rokok</span>
         </span>
       </a>
@@ -111,6 +111,27 @@
       </section>
     </main>
 
+    <button id="backToTopButton" class="back-to-top-button" type="button" aria-label="Kembali ke atas" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m5 14 7-7 7 7M12 7v13" />
+      </svg>
+    </button>
+
+    <dialog id="categorySuggestionDialog" class="suggestion-dialog" aria-labelledby="categorySuggestionTitle">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">HASIL PENCARIAN</p>
+          <h2 id="categorySuggestionTitle">Barangnya ada di kategori lain</h2>
+        </div>
+        <button id="closeCategorySuggestionButton" class="close-button" type="button" aria-label="Tutup saran">×</button>
+      </div>
+      <p class="suggestion-copy">Coba cari di Semua Item untuk melihat barang yang cocok.</p>
+      <div class="suggestion-actions">
+        <button id="showAllItemsButton" class="suggestion-primary-button" type="button">Coba Semua Item</button>
+        <button id="dismissCategorySuggestionButton" class="suggestion-secondary-button" type="button">Nanti</button>
+      </div>
+    </dialog>
+
     <dialog id="cartDialog" class="cart-dialog" aria-labelledby="cartTitle">
       <div class="dialog-heading">
         <div>
@@ -125,6 +146,9 @@
         <span>Total pesanan</span>
         <strong id="cartTotal">Rp 0</strong>
       </div>
+      <a id="whatsappOrderButton" class="whatsapp-order-button" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">
+        Kirim pesanan ke WhatsApp
+      </a>
     </dialog>
 
     <footer class="site-footer">
