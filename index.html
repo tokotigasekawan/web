@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0082c8" />
+    <meta
+      name="description"
+      content="Katalog produk dengan pencarian langsung dan harga grosir bertingkat."
+    />
+    <title>TTS Toko Tiga Sekawan</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="TTS Toko Tiga Sekawan, beranda">
+        <img class="brand-logo" src="Aset/LOGO%20TTS.png" alt="" />
+        <span class="brand-copy">
+          <span class="brand-title">TTS Toko Tiga Sekawan</span>
+          <span class="brand-subtitle">Toko sembako, tidak menjual rokok</span>
+        </span>
+      </a>
+      <button class="cart-button" id="openCartButton" type="button" aria-label="Buka keranjang">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L21 8H7" />
+          <circle cx="10" cy="20" r="1" />
+          <circle cx="18" cy="20" r="1" />
+        </svg>
+        <span id="cartCount" class="cart-count">0</span>
+      </button>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">KATALOG PRODUK</p>
+        <h1>Temukan produk pilihanmu</h1>
+        <p class="intro-copy">Cari produk dan pesan dengan harga sesuai jumlah pembelian.</p>
+        <label class="search-box">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10.8" cy="10.8" r="6.8" />
+            <path d="m16 16 5 5" />
+          </svg>
+          <span class="visually-hidden">Cari berdasarkan kode atau nama produk</span>
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="Cari kode atau nama produk, lalu tekan Enter..."
+            aria-label="Cari kode atau nama produk, lalu tekan Enter"
+            autocomplete="off"
+            disabled
+          />
+          <button id="clearSearchButton" class="clear-search" type="button" aria-label="Hapus pencarian" hidden>×</button>
+        </label>
+      </section>
+
+      <section class="catalog" aria-label="Daftar produk">
+        <div class="catalog-heading">
+          <div>
+            <h2 id="catalogTitle">Semua Item</h2>
+            <p id="productCount" class="product-count" aria-live="polite">Memuat produk...</p>
+          </div>
+          <span class="catalog-mark" aria-hidden="true">✦</span>
+        </div>
+        <div id="statusMessage" class="status-message" role="status" aria-live="polite">Memuat produk...</div>
+        <nav id="categoryFilters" class="category-filters" aria-label="Filter kategori produk"></nav>
+        <div id="productGrid" class="product-grid"></div>
+        <p id="emptyResults" class="empty-results" hidden>Tidak ada produk yang cocok.</p>
+        <button id="loadMoreButton" class="load-more-button" type="button" hidden>
+          Muat 30 Produk Lagi
+          <span aria-hidden="true">↓</span>
+        </button>
+      </section>
+    </main>
+
+    <dialog id="cartDialog" class="cart-dialog" aria-labelledby="cartTitle">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">PESANAN KAMU</p>
+          <h2 id="cartTitle">Keranjang</h2>
+        </div>
+        <button id="closeCartButton" class="close-button" type="button" aria-label="Tutup keranjang">×</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <p id="emptyCartMessage" class="empty-cart-message">Keranjangmu masih kosong.</p>
+      <div class="cart-total">
+        <span>Total pesanan</span>
+        <strong id="cartTotal">Rp 0</strong>
+      </div>
+    </dialog>
+
+    <footer class="site-footer">
+      <span class="footer-dot" aria-hidden="true"></span>
+      Harga terbaik untuk belanja lebih banyak
+    </footer>
+  </body>
+</html>
