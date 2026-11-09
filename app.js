@@ -29,6 +29,7 @@ const productGrid = document.querySelector("#productGrid");
 const categoryFilters = document.querySelector("#categoryFilters");
 const searchInput = document.querySelector("#searchInput");
 const statusMessage = document.querySelector("#statusMessage");
+const dataUpdatedAt = document.querySelector("#dataUpdatedAt");
 const brandTitle = document.querySelector("#brandTitle");
 const branchDialog = document.querySelector("#branchDialog");
 const productCount = document.querySelector("#productCount");
@@ -159,9 +160,50 @@ function parsePrice(value) {
     : NaN;
 }
 
+function formatDataUpdate(dateValue, timeValue) {
+  const dateMatch = dateValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const timeMatch = timeValue.trim().match(/^(\d{1,2})[.:](\d{2})$/);
+  if (!dateMatch || !timeMatch) return "";
+
+  const [, dayText, monthText, yearText] = dateMatch;
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+  const hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+    || hours > 23
+    || minutes > 59
+  ) {
+    return "";
+  }
+
+  const formattedDate = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+  return `${formattedDate}, pukul ${String(hours).padStart(2, "0")}.${String(minutes).padStart(2, "0")}`;
+}
+
 function readProducts(csvText, productFile) {
   const rows = parseCsv(csvText.replace(/^\uFEFF/, ""));
   if (rows.length < 2) throw new Error(`File ${productFile} belum memiliki data produk.`);
+
+  let updatedDate = "";
+  let updatedTime = "";
+  for (let index = 0; index < rows[0].length; index += 1) {
+    const header = normalizeHeader(rows[0][index]);
+    if (header === "tanggalupdate") updatedDate = rows[0][index + 1] || "";
+    if (header === "jam") updatedTime = rows[0][index + 1] || "";
+  }
+  const lastUpdated = formatDataUpdate(updatedDate, updatedTime);
 
   const headers = rows[0].map(normalizeHeader);
   const columnAliases = {
@@ -222,7 +264,7 @@ function readProducts(csvText, productFile) {
     });
   }
 
-  return { products: parsedProducts, skippedRows };
+  return { products: parsedProducts, skippedRows, lastUpdated };
 }
 
 function getMatchingProducts() {
@@ -317,10 +359,9 @@ function renderProducts() {
     : resultDescription;
 
   productGrid.innerHTML = displayedProducts.map((product) => {
-    const quantity = getCartQuantity(product.id);
     const addQuantity = addQuantities.get(product.id) ?? 1;
     const hasAddQuantity = addQuantities.has(product.id);
-    const unitPrice = getPriceTier(product, Math.max(quantity, 1)).price;
+    const unitPrice = getPriceTier(product, Math.max(addQuantity, 1)).price;
     const imagePath = `images/${encodeURIComponent(product.code)}.webp`;
 
     return `
@@ -577,6 +618,9 @@ cartDialog.addEventListener("click", (event) => {
 function updateBranchSelection() {
   const activeBranch = BRANCHES.find((branch) => branch.id === activeBranchId);
   document.documentElement.dataset.branch = activeBranchId;
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement)
+    .getPropertyValue("--blue")
+    .trim();
   brandTitle.textContent = activeBranch.storeTitle;
   document.querySelector(".brand").setAttribute("aria-label", `${activeBranch.storeTitle}, beranda`);
   document.querySelectorAll("[data-branch-id]").forEach((button) => {
@@ -612,6 +656,10 @@ async function loadProductFile(branch) {
       activeBranchId = branch.id;
     }
     products = result.products;
+    dataUpdatedAt.textContent = result.lastUpdated
+      ? `Data diperbarui terakhir ${result.lastUpdated}`
+      : "";
+    dataUpdatedAt.hidden = !result.lastUpdated;
     visibleLimit = PAGE_SIZE;
     searchTerm = "";
     activeCategory = null;
@@ -663,5 +711,12 @@ branchDialog.addEventListener("click", (event) => {
   branchDialog.close();
   loadProductFile(branch);
 });
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
+      .catch((error) => console.error("Gagal mendaftarkan service worker PWA.", error));
+  });
+}
 
 loadProductFile(BRANCHES.find((branch) => branch.id === activeBranchId));

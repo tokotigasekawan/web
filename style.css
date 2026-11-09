@@ -254,12 +254,27 @@ main {
   padding: 30px 0 22px;
 }
 
+.intro-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .eyebrow {
   margin: 0 0 7px;
   color: var(--blue);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.5px;
+}
+
+.data-updated-at {
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: right;
 }
 
 .intro h1 {

@@ -8,7 +8,11 @@
       name="description"
       content="Katalog produk dengan pencarian langsung dan harga grosir bertingkat."
     />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="TTS Toko" />
     <title>TTS Toko Tiga Sekawan</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <link rel="stylesheet" href="style.css" />
     <script src="app.js" defer></script>
   </head>
@@ -65,7 +69,10 @@
 
     <main>
       <section class="intro">
-        <p class="eyebrow">KATALOG PRODUK</p>
+        <div class="intro-heading-row">
+          <p class="eyebrow">KATALOG PRODUK</p>
+          <p id="dataUpdatedAt" class="data-updated-at" hidden></p>
+        </div>
         <h1>Temukan produk pilihanmu</h1>
         <p class="intro-copy">Cari produk dan pesan dengan harga sesuai jumlah pembelian.</p>
         <label class="search-box">
