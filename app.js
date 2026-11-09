@@ -40,10 +40,12 @@ const loadMoreButton = document.querySelector("#loadMoreButton");
 const cartDialog = document.querySelector("#cartDialog");
 const cartItems = document.querySelector("#cartItems");
 const emptyCartMessage = document.querySelector("#emptyCartMessage");
+const clearCartButton = document.querySelector("#clearCartButton");
 const categorySuggestionDialog = document.querySelector("#categorySuggestionDialog");
 const whatsappOrderButton = document.querySelector("#whatsappOrderButton");
 const backToTopButton = document.querySelector("#backToTopButton");
 const cartButton = document.querySelector("#openCartButton");
+const welcomeGreeting = document.querySelector("#welcomeGreeting");
 const authGate = document.querySelector("#authGate");
 const appShell = document.querySelector("#appShell");
 const phoneForm = document.querySelector("#phoneForm");
@@ -125,6 +127,82 @@ function saveCustomerProfile(customer) {
   localStorage.setItem(customerProfilesKey, JSON.stringify(profiles));
 }
 
+function getCustomerCartKey(phoneKey, branchId) {
+  return `tts-demo-cart-v2-${phoneKey}-${branchId}`;
+}
+
+function getProductCartIdentity(product) {
+  return JSON.stringify([product.code, product.name, product.unit]);
+}
+
+function saveCurrentCart() {
+  if (!activeCustomer || products.length === 0) return;
+
+  const cartEntries = [];
+  for (const product of products) {
+    const quantity = getCartQuantity(product.id);
+    if (quantity > 0) {
+      cartEntries.push({
+        identity: getProductCartIdentity(product),
+        quantity,
+      });
+    }
+  }
+
+  try {
+    localStorage.setItem(
+      getCustomerCartKey(activeCustomer.phoneKey, activeBranchId),
+      JSON.stringify(cartEntries),
+    );
+  } catch (error) {
+    console.error("Keranjang tidak dapat disimpan di browser.", error);
+    statusMessage.textContent = "Keranjang tidak dapat disimpan di browser ini. Periksa ruang penyimpanan atau pengaturan browser.";
+    statusMessage.hidden = false;
+    statusMessage.classList.add("status-error");
+  }
+}
+
+function loadSavedCart(branchProducts, branch) {
+  if (!activeCustomer) return new Map();
+  const savedCart = localStorage.getItem(getCustomerCartKey(activeCustomer.phoneKey, branch.id));
+  if (!savedCart) return new Map();
+
+  let cartEntries;
+  try {
+    cartEntries = JSON.parse(savedCart);
+  } catch {
+    throw new Error("Data keranjang tersimpan tidak bisa dibaca. Hapus data keranjang browser lalu coba lagi.");
+  }
+  if (!Array.isArray(cartEntries)) {
+    throw new Error("Format keranjang tersimpan tidak valid. Hapus data keranjang browser lalu coba lagi.");
+  }
+
+  const savedByIdentity = new Map();
+  for (const entry of cartEntries) {
+    if (
+      !entry
+      || typeof entry.identity !== "string"
+      || !Number.isFinite(entry.quantity)
+      || entry.quantity <= 0
+    ) {
+      throw new Error("Isi keranjang tersimpan tidak valid. Hapus data keranjang browser lalu coba lagi.");
+    }
+    const entries = savedByIdentity.get(entry.identity) || [];
+    entries.push(entry.quantity);
+    savedByIdentity.set(entry.identity, entries);
+  }
+
+  const restoredCart = new Map();
+  for (const product of branchProducts) {
+    const entries = savedByIdentity.get(getProductCartIdentity(product));
+    const quantity = entries?.shift();
+    if (Number.isFinite(quantity)) {
+      restoredCart.set(product.id, quantity);
+    }
+  }
+  return restoredCart;
+}
+
 function renderCustomerProfile() {
   if (!activeCustomer) return;
   document.querySelector("#profileName").textContent = activeCustomer.name;
@@ -186,6 +264,7 @@ function startCatalogSession(customer) {
   activeCustomer = customer;
   sessionStorage.setItem(authSessionKey, customer.phoneKey);
   renderCustomerProfile();
+  welcomeGreeting.textContent = `Halo ${customer.name},`;
   accountLocationStatus.textContent = "";
   accountLocationStatus.classList.remove("is-error");
   authGate.hidden = true;
@@ -790,12 +869,14 @@ function renderCart() {
   }).join("");
 
   emptyCartMessage.hidden = cartProducts.length > 0;
+  clearCartButton.disabled = cartProducts.length === 0;
   document.querySelector("#cartTotal").textContent = formatPrice(total);
   document.querySelector("#cartCount").textContent = String(cartProducts.length);
   document.querySelector("#openCartButton").setAttribute(
     "aria-label",
     `Buka keranjang, ${cartProducts.length} jenis barang`,
   );
+  saveCurrentCart();
 
   const activeBranch = BRANCHES.find((branch) => branch.id === activeBranchId);
   const orderLines = cartProducts.map((product, index) => {
@@ -1035,6 +1116,12 @@ cartItems.addEventListener("click", (event) => {
 
 document.querySelector("#openCartButton").addEventListener("click", () => cartDialog.showModal());
 document.querySelector("#closeCartButton").addEventListener("click", () => cartDialog.close());
+clearCartButton.addEventListener("click", () => {
+  if (cart.size === 0) return;
+  if (!window.confirm("Kosongkan semua barang di keranjang cabang ini?")) return;
+  cart.clear();
+  render();
+});
 cartDialog.addEventListener("click", (event) => {
   if (event.target === cartDialog) cartDialog.close();
 });
@@ -1084,6 +1171,9 @@ function updateBranchSelection() {
 }
 
 async function loadProductFile(branch) {
+  if (branch.id !== activeBranchId) {
+    saveCurrentCart();
+  }
   const requestId = branchLoadRequest + 1;
   branchLoadRequest = requestId;
   statusMessage.textContent = `Memuat data barang cabang ${branch.name}...`;
@@ -1106,11 +1196,12 @@ async function loadProductFile(branch) {
     if (branch.id !== activeBranchId) {
       branchCarts.set(activeBranchId, cart);
       branchAddQuantities.set(activeBranchId, addQuantities);
-      cart = branchCarts.get(branch.id) || new Map();
       addQuantities = branchAddQuantities.get(branch.id) || new Map();
       activeBranchId = branch.id;
     }
     products = result.products;
+    cart = loadSavedCart(products, branch);
+    branchCarts.set(branch.id, cart);
     dataUpdatedAt.textContent = result.lastUpdated
       ? `Data diperbarui terakhir ${result.lastUpdated}`
       : "";

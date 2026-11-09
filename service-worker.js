@@ -1,4 +1,4 @@
-const CACHE_NAME = "tts-catalog-v8";
+const CACHE_NAME = "tts-catalog-v10";
 const APP_SHELL = [
   "./",
   "./index.html",

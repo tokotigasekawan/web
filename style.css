@@ -680,6 +680,13 @@ main {
   text-align: right;
 }
 
+.welcome-greeting {
+  margin: 0 0 5px;
+  color: var(--blue-dark);
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .intro h1 {
   margin: 0;
   font-size: clamp(24px, 7vw, 34px);
@@ -1348,6 +1355,27 @@ main {
 
 .whatsapp-order-button[aria-disabled="true"] {
   background: #a7adb7;
+  cursor: not-allowed;
+}
+
+.clear-cart-button {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 8px;
+  border: 1px solid #e3c9cc;
+  border-radius: 9px;
+  color: #a11b2d;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clear-cart-button:disabled {
+  border-color: #e5e6e9;
+  color: #a7adb7;
+  background: #f5f6f8;
   cursor: not-allowed;
 }
 
