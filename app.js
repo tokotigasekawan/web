@@ -494,9 +494,10 @@ function renderCart() {
     const quantity = getCartQuantity(product.id);
     const unitPrice = getPriceTier(product, quantity).price;
     const lineTotal = unitPrice * quantity;
+    const calculationIndent = "\u00a0".repeat(`${index + 1}. `.length);
     return [
       `${index + 1}. ${product.name}`,
-      `= ${formatQuantity(quantity)} ${product.unit} x ${formatAmount(unitPrice)} = *${formatAmount(lineTotal)}*`,
+      `${calculationIndent}= ${formatQuantity(quantity)} ${product.unit} x ${formatAmount(unitPrice)} = *${formatAmount(lineTotal)}*`,
     ].join("\n");
   });
   const orderMessage = [
