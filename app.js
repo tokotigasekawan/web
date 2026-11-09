@@ -32,6 +32,7 @@ const statusMessage = document.querySelector("#statusMessage");
 const dataUpdatedAt = document.querySelector("#dataUpdatedAt");
 const brandTitle = document.querySelector("#brandTitle");
 const branchDialog = document.querySelector("#branchDialog");
+const profileDialog = document.querySelector("#profileDialog");
 const productCount = document.querySelector("#productCount");
 const catalogTitle = document.querySelector("#catalogTitle");
 const emptyResults = document.querySelector("#emptyResults");
@@ -52,6 +53,8 @@ const customerNameInput = document.querySelector("#customerNameInput");
 const getLocationButton = document.querySelector("#getLocationButton");
 const registerButton = document.querySelector("#registerButton");
 const locationStatus = document.querySelector("#locationStatus");
+const refreshLocationButton = document.querySelector("#refreshLocationButton");
+const accountLocationStatus = document.querySelector("#accountLocationStatus");
 const otpPanel = document.querySelector("#otpPanel");
 const otpInput = document.querySelector("#otpInput");
 const otpDemoCode = document.querySelector("#otpDemoCode");
@@ -122,10 +125,69 @@ function saveCustomerProfile(customer) {
   localStorage.setItem(customerProfilesKey, JSON.stringify(profiles));
 }
 
+function renderCustomerProfile() {
+  if (!activeCustomer) return;
+  document.querySelector("#profileName").textContent = activeCustomer.name;
+  document.querySelector("#profilePhone").textContent = activeCustomer.phone;
+  const { latitude, longitude } = activeCustomer.location;
+  const mapsUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
+  const locationLink = document.querySelector("#profileLocationLink");
+  locationLink.href = mapsUrl;
+  locationLink.textContent = "Lihat lokasi di Google Maps";
+  document.querySelector("#profileCoordinates").textContent = `${latitude}, ${longitude}`;
+}
+
+refreshLocationButton.addEventListener("click", () => {
+  if (!window.isSecureContext || !navigator.geolocation) {
+    accountLocationStatus.textContent = "Pembaruan GPS memerlukan situs HTTPS dan dukungan lokasi di perangkat.";
+    accountLocationStatus.classList.add("is-error");
+    return;
+  }
+
+  refreshLocationButton.disabled = true;
+  accountLocationStatus.textContent = "Meminta izin lokasi terbaru...";
+  accountLocationStatus.classList.remove("is-error");
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      try {
+        const updatedCustomer = {
+          ...activeCustomer,
+          location: {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          },
+        };
+        saveCustomerProfile(updatedCustomer);
+        activeCustomer = updatedCustomer;
+        renderCustomerProfile();
+        accountLocationStatus.textContent = `Lokasi berhasil diperbarui (akurasi sekitar ${Math.round(position.coords.accuracy)} meter).`;
+      } catch (error) {
+        accountLocationStatus.textContent = `Lokasi tidak tersimpan: ${error.message}`;
+        accountLocationStatus.classList.add("is-error");
+      } finally {
+        refreshLocationButton.disabled = false;
+      }
+    },
+    (error) => {
+      accountLocationStatus.textContent = error.code === error.PERMISSION_DENIED
+        ? "Izin lokasi ditolak. Lokasi lama tetap tersimpan."
+        : error.code === error.POSITION_UNAVAILABLE
+          ? "Lokasi terbaru tidak tersedia. Lokasi lama tetap tersimpan."
+          : "Permintaan lokasi terlalu lama. Lokasi lama tetap tersimpan.";
+      accountLocationStatus.classList.add("is-error");
+      refreshLocationButton.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+  );
+});
+
 function startCatalogSession(customer) {
   activeCustomer = customer;
   sessionStorage.setItem(authSessionKey, customer.phoneKey);
-  document.querySelector("#signedInCustomer").textContent = `${customer.name} (${customer.phone})`;
+  renderCustomerProfile();
+  accountLocationStatus.textContent = "";
+  accountLocationStatus.classList.remove("is-error");
   authGate.hidden = true;
   appShell.hidden = false;
   loadProductFile(BRANCHES.find((branch) => branch.id === activeBranchId));
@@ -268,6 +330,7 @@ document.querySelector("#changePhoneButton").addEventListener("click", () => {
 });
 
 document.querySelector("#logoutButton").addEventListener("click", () => {
+  branchDialog.close();
   sessionStorage.removeItem(authSessionKey);
   activeCustomer = null;
   products = [];
@@ -275,7 +338,6 @@ document.querySelector("#logoutButton").addEventListener("click", () => {
   branchCarts.clear();
   addQuantities = new Map();
   branchAddQuantities.clear();
-  document.querySelector("#signedInCustomer").textContent = "";
   appShell.hidden = true;
   authGate.hidden = false;
   resetLoginForm();
@@ -1089,10 +1151,17 @@ async function loadProductFile(branch) {
 
 document.querySelector("#openBranchMenuButton").addEventListener("click", () => branchDialog.showModal());
 document.querySelector("#closeBranchMenuButton").addEventListener("click", () => branchDialog.close());
+document.querySelector("#openProfileButton").addEventListener("click", () => {
+  branchDialog.close();
+  renderCustomerProfile();
+  profileDialog.showModal();
+});
+document.querySelector("#closeProfileButton").addEventListener("click", () => profileDialog.close());
 branchDialog.addEventListener("click", (event) => {
   if (event.target === branchDialog) branchDialog.close();
 });
 branchDialog.addEventListener("click", (event) => {
+  if (event.target.closest("#openProfileButton") || event.target.closest("#logoutButton")) return;
   const branchButton = event.target.closest("[data-branch-id]");
   if (!branchButton || branchButton.dataset.branchId === activeBranchId) {
     if (branchButton) branchDialog.close();
