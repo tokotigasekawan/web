@@ -865,9 +865,20 @@ window.addEventListener("scroll", () => {
 }, { passive: true });
 
 if ("serviceWorker" in navigator) {
+  let isReloadingForServiceWorker = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (isReloadingForServiceWorker) return;
+    isReloadingForServiceWorker = true;
+    window.location.reload();
+  });
+
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
-      .catch((error) => console.error("Gagal mendaftarkan service worker PWA.", error));
+    navigator.serviceWorker.register("./service-worker.js", {
+      scope: "./",
+      updateViaCache: "none",
+    })
+      .then((registration) => registration.update())
+      .catch((error) => console.error("Gagal memperbarui service worker PWA.", error));
   });
 }
 
