@@ -1,16 +1,36 @@
 const PAGE_SIZE = 30;
-const PRODUCT_FILE = "DATA BARANG.csv";
+const BRANCHES = [
+  {
+    id: "sukanagalih",
+    name: "Sukanagalih",
+    storeTitle: "TTS Toko Tiga Sekawan Sukanagalih",
+    productFile: "SUKANAGALIH DATA BARANG.csv",
+  },
+  {
+    id: "simpang1",
+    name: "Simpang 1",
+    storeTitle: "TTS Toko Tiga Sekawan Simpang 1",
+    productFile: "DATA BARANG.csv",
+  },
+];
 
 let products = [];
 let cart = new Map();
+const branchCarts = new Map();
+let addQuantities = new Map();
+const branchAddQuantities = new Map();
 let visibleLimit = PAGE_SIZE;
 let searchTerm = "";
 let activeCategory = null;
+let activeBranchId = "simpang1";
+let branchLoadRequest = 0;
 
 const productGrid = document.querySelector("#productGrid");
 const categoryFilters = document.querySelector("#categoryFilters");
 const searchInput = document.querySelector("#searchInput");
 const statusMessage = document.querySelector("#statusMessage");
+const brandTitle = document.querySelector("#brandTitle");
+const branchDialog = document.querySelector("#branchDialog");
 const productCount = document.querySelector("#productCount");
 const catalogTitle = document.querySelector("#catalogTitle");
 const emptyResults = document.querySelector("#emptyResults");
@@ -139,9 +159,9 @@ function parsePrice(value) {
     : NaN;
 }
 
-function readProducts(csvText) {
+function readProducts(csvText, productFile) {
   const rows = parseCsv(csvText.replace(/^\uFEFF/, ""));
-  if (rows.length < 2) throw new Error(`File ${PRODUCT_FILE} belum memiliki data produk.`);
+  if (rows.length < 2) throw new Error(`File ${productFile} belum memiliki data produk.`);
 
   const headers = rows[0].map(normalizeHeader);
   const columnAliases = {
@@ -298,6 +318,8 @@ function renderProducts() {
 
   productGrid.innerHTML = displayedProducts.map((product) => {
     const quantity = getCartQuantity(product.id);
+    const addQuantity = addQuantities.get(product.id) ?? 1;
+    const hasAddQuantity = addQuantities.has(product.id);
     const unitPrice = getPriceTier(product, Math.max(quantity, 1)).price;
     const imagePath = `images/${encodeURIComponent(product.code)}.webp`;
 
@@ -317,14 +339,36 @@ function renderProducts() {
           <p class="product-price">${formatPrice(unitPrice)}</p>
           ${renderPriceBreakdown(product)}
           <button
-            class="add-button ${quantity ? "has-quantity" : ""}"
+            class="add-button"
             type="button"
             data-add-id="${product.id}"
-            aria-label="Tambah ${escapeHtml(product.name)} ke keranjang"
+            ${hasAddQuantity && addQuantity <= 0 ? "disabled" : ""}
+            aria-label="${hasAddQuantity
+              ? `Tambahkan ${formatQuantity(addQuantity)} ${escapeHtml(product.unit)} ${escapeHtml(product.name)} ke keranjang`
+              : `Tambah ${escapeHtml(product.name)} ke keranjang`}"
           >
             <span aria-hidden="true">+</span>
-            ${quantity ? `Tambah lagi - ${quantity} ${escapeHtml(product.unit)}` : "Tambah ke keranjang"}
+            ${hasAddQuantity
+              ? `Tambahkan ${formatQuantity(addQuantity)} ${escapeHtml(product.unit)} ke keranjang`
+              : "Tambah ke keranjang"}
           </button>
+          ${hasAddQuantity
+            ? `
+              <div class="quantity-control product-quantity-control" aria-label="Jumlah ${escapeHtml(product.name)}">
+                <button type="button" data-add-quantity-change="-1" data-id="${product.id}" aria-label="Kurangi jumlah tambahan ${escapeHtml(product.name)}">-</button>
+                <input
+                  class="quantity-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  value="${formatQuantity(addQuantity)}"
+                  data-add-quantity="${product.id}"
+                  aria-label="Jumlah yang ditambahkan untuk ${escapeHtml(product.name)} dalam ${escapeHtml(product.unit)}"
+                />
+                <button type="button" data-add-quantity-change="1" data-id="${product.id}" aria-label="Tambah jumlah tambahan ${escapeHtml(product.name)}">+</button>
+              </div>
+            `
+            : ""}
         </div>
       </article>
     `;
@@ -344,14 +388,12 @@ function renderProducts() {
 function renderCart() {
   const cartProducts = products.filter((product) => getCartQuantity(product.id) > 0);
   let total = 0;
-  let totalItems = 0;
 
   cartItems.innerHTML = cartProducts.map((product) => {
     const quantity = getCartQuantity(product.id);
     const unitPrice = getPriceTier(product, quantity).price;
     const lineTotal = unitPrice * quantity;
     total += lineTotal;
-    totalItems += quantity;
 
     return `
       <article class="cart-item">
@@ -380,10 +422,10 @@ function renderCart() {
 
   emptyCartMessage.hidden = cartProducts.length > 0;
   document.querySelector("#cartTotal").textContent = formatPrice(total);
-  document.querySelector("#cartCount").textContent = formatQuantity(totalItems);
+  document.querySelector("#cartCount").textContent = String(cartProducts.length);
   document.querySelector("#openCartButton").setAttribute(
     "aria-label",
-    `Buka keranjang, ${totalItems} produk`,
+    `Buka keranjang, ${cartProducts.length} jenis barang`,
   );
 }
 
@@ -401,25 +443,52 @@ function changeQuantity(productId, change) {
   render();
 }
 
-cartItems.addEventListener("focusin", (event) => {
-  if (event.target.matches("[data-cart-quantity]")) event.target.select();
+function bindQuantityInputEvents(container) {
+  container.addEventListener("focusin", (event) => {
+    if (event.target.matches("[data-cart-quantity]")) event.target.select();
+  });
+
+  container.addEventListener("change", (event) => {
+    if (!event.target.matches("[data-cart-quantity]")) return;
+    const productId = Number(event.target.dataset.cartQuantity);
+    const quantity = parseQuantity(event.target.value);
+    if (Number.isNaN(quantity)) {
+      render();
+      return;
+    }
+    if (quantity === 0) cart.delete(productId);
+    else cart.set(productId, quantity);
+    render();
+  });
+
+  container.addEventListener("keydown", (event) => {
+    if (event.target.matches("[data-cart-quantity]") && event.key === "Enter") {
+      event.preventDefault();
+      event.target.blur();
+    }
+  });
+}
+
+bindQuantityInputEvents(cartItems);
+
+productGrid.addEventListener("focusin", (event) => {
+  if (event.target.matches("[data-add-quantity]")) event.target.select();
 });
 
-cartItems.addEventListener("change", (event) => {
-  if (!event.target.matches("[data-cart-quantity]")) return;
-  const productId = Number(event.target.dataset.cartQuantity);
+productGrid.addEventListener("change", (event) => {
+  if (!event.target.matches("[data-add-quantity]")) return;
+  const productId = Number(event.target.dataset.addQuantity);
   const quantity = parseQuantity(event.target.value);
   if (Number.isNaN(quantity)) {
-    renderCart();
+    renderProducts();
     return;
   }
-  if (quantity === 0) cart.delete(productId);
-  else cart.set(productId, quantity);
-  render();
+  addQuantities.set(productId, quantity);
+  renderProducts();
 });
 
-cartItems.addEventListener("keydown", (event) => {
-  if (event.target.matches("[data-cart-quantity]") && event.key === "Enter") {
+productGrid.addEventListener("keydown", (event) => {
+  if (event.target.matches("[data-add-quantity]") && event.key === "Enter") {
     event.preventDefault();
     event.target.blur();
   }
@@ -470,7 +539,26 @@ categoryFilters.addEventListener("click", (event) => {
 
 productGrid.addEventListener("click", (event) => {
   const addButton = event.target.closest("[data-add-id]");
-  if (addButton) changeQuantity(Number(addButton.dataset.addId), 1);
+  if (addButton) {
+    const productId = Number(addButton.dataset.addId);
+    const addQuantity = addQuantities.get(productId) ?? 1;
+    if (addQuantity <= 0) return;
+    cart.set(productId, getCartQuantity(productId) + addQuantity);
+    addQuantities.set(productId, 1);
+    render();
+    return;
+  }
+
+  const addQuantityButton = event.target.closest("[data-add-quantity-change]");
+  if (addQuantityButton) {
+    const productId = Number(addQuantityButton.dataset.id);
+    const currentQuantity = addQuantities.get(productId) ?? 1;
+    addQuantities.set(
+      productId,
+      Math.max(0, currentQuantity + Number(addQuantityButton.dataset.addQuantityChange)),
+    );
+    renderProducts();
+  }
 });
 
 cartItems.addEventListener("click", (event) => {
@@ -486,42 +574,94 @@ cartDialog.addEventListener("click", (event) => {
   if (event.target === cartDialog) cartDialog.close();
 });
 
-async function loadProductFile() {
+function updateBranchSelection() {
+  const activeBranch = BRANCHES.find((branch) => branch.id === activeBranchId);
+  document.documentElement.dataset.branch = activeBranchId;
+  brandTitle.textContent = activeBranch.storeTitle;
+  document.querySelector(".brand").setAttribute("aria-label", `${activeBranch.storeTitle}, beranda`);
+  document.querySelectorAll("[data-branch-id]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.branchId === activeBranchId));
+  });
+}
+
+async function loadProductFile(branch) {
+  const requestId = branchLoadRequest + 1;
+  branchLoadRequest = requestId;
+  statusMessage.textContent = `Memuat data barang cabang ${branch.name}...`;
+  statusMessage.hidden = false;
+  statusMessage.classList.remove("status-error");
+
   try {
-    const response = await fetch(PRODUCT_FILE, { cache: "no-store" });
+    const response = await fetch(branch.productFile, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(
         response.status === 404
-          ? `File ${PRODUCT_FILE} tidak ditemukan. Letakkan file tersebut di folder yang sama dengan index.html.`
-          : `Gagal membaca ${PRODUCT_FILE} (HTTP ${response.status}).`,
+          ? `File ${branch.productFile} tidak ditemukan. Letakkan file tersebut di folder yang sama dengan index.html.`
+          : `Gagal membaca ${branch.productFile} (HTTP ${response.status}).`,
       );
     }
 
-    const result = readProducts(await response.text());
+    const csvText = await response.text();
+    if (requestId !== branchLoadRequest) return;
+    const result = readProducts(csvText, branch.productFile);
+    if (branch.id !== activeBranchId) {
+      branchCarts.set(activeBranchId, cart);
+      branchAddQuantities.set(activeBranchId, addQuantities);
+      cart = branchCarts.get(branch.id) || new Map();
+      addQuantities = branchAddQuantities.get(branch.id) || new Map();
+      activeBranchId = branch.id;
+    }
     products = result.products;
+    visibleLimit = PAGE_SIZE;
+    searchTerm = "";
+    activeCategory = null;
+    searchInput.value = "";
+    document.querySelector("#clearSearchButton").hidden = true;
     searchInput.disabled = false;
+    updateBranchSelection();
 
     if (products.length === 0) {
-      statusMessage.textContent = "Belum ada produk valid di DATA BARANG.csv.";
+      statusMessage.textContent = `Belum ada produk valid di ${branch.productFile}.`;
       statusMessage.hidden = false;
-    } else if (result.skippedRows > 0) {
-      statusMessage.textContent = `${result.skippedRows} baris CSV dilewati karena kode, nama, satuan, atau harga tidak valid.`;
-      statusMessage.hidden = false;
-      statusMessage.classList.add("status-warning");
     } else {
       statusMessage.hidden = true;
+    }
+    if (result.skippedRows > 0) {
+      console.warn(`${result.skippedRows} baris CSV dilewati di ${branch.productFile} karena data produk tidak lengkap atau harga tidak valid.`);
     }
 
     render();
   } catch (error) {
+    if (requestId !== branchLoadRequest) return;
     statusMessage.textContent = error instanceof TypeError
       ? "Browser tidak dapat membaca CSV dari file langsung. Jalankan aplikasi melalui server lokal, misalnya Live Server di VS Code."
       : error.message;
     statusMessage.hidden = false;
     statusMessage.classList.add("status-error");
-    productCount.textContent = "Data produk belum dimuat";
-    loadMoreButton.hidden = true;
+    if (products.length === 0) {
+      searchInput.disabled = true;
+      productCount.textContent = "Data produk belum dimuat";
+      loadMoreButton.hidden = true;
+    }
   }
 }
 
-loadProductFile();
+document.querySelector("#openBranchMenuButton").addEventListener("click", () => branchDialog.showModal());
+document.querySelector("#closeBranchMenuButton").addEventListener("click", () => branchDialog.close());
+branchDialog.addEventListener("click", (event) => {
+  if (event.target === branchDialog) branchDialog.close();
+});
+branchDialog.addEventListener("click", (event) => {
+  const branchButton = event.target.closest("[data-branch-id]");
+  if (!branchButton || branchButton.dataset.branchId === activeBranchId) {
+    if (branchButton) branchDialog.close();
+    return;
+  }
+
+  const branch = BRANCHES.find((item) => item.id === branchButton.dataset.branchId);
+  if (!branch) return;
+  branchDialog.close();
+  loadProductFile(branch);
+});
+
+loadProductFile(BRANCHES.find((branch) => branch.id === activeBranchId));

@@ -14,10 +14,22 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="#" aria-label="TTS Toko Tiga Sekawan, beranda">
+      <button
+        class="branch-menu-button"
+        id="openBranchMenuButton"
+        type="button"
+        aria-label="Pilih cabang"
+        aria-haspopup="dialog"
+        aria-controls="branchDialog"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <a class="brand" href="#" aria-label="TTS Toko Tiga Sekawan">
         <img class="brand-logo" src="Aset/LOGO%20TTS.png" alt="" />
         <span class="brand-copy">
-          <span class="brand-title">TTS Toko Tiga Sekawan</span>
+          <span class="brand-title" id="brandTitle">TTS Toko Tiga Sekawan Simpang 1</span>
           <span class="brand-subtitle">Toko sembako, tidak menjual rokok</span>
         </span>
       </a>
@@ -30,6 +42,26 @@
         <span id="cartCount" class="cart-count">0</span>
       </button>
     </header>
+
+    <dialog id="branchDialog" class="branch-dialog" aria-labelledby="branchDialogTitle">
+      <div class="branch-dialog-heading">
+        <div>
+          <p class="eyebrow">LOKASI TOKO</p>
+          <h2 id="branchDialogTitle">Pilih Cabang</h2>
+        </div>
+        <button id="closeBranchMenuButton" class="close-button" type="button" aria-label="Tutup pilihan cabang">×</button>
+      </div>
+      <div class="branch-options">
+        <button class="branch-option" type="button" data-branch-id="sukanagalih" aria-pressed="false">
+          <span>Sukanagalih</span>
+          <span class="branch-check" aria-hidden="true">✓</span>
+        </button>
+        <button class="branch-option" type="button" data-branch-id="simpang1" aria-pressed="true">
+          <span>Simpang 1</span>
+          <span class="branch-check" aria-hidden="true">✓</span>
+        </button>
+      </div>
+    </dialog>
 
     <main>
       <section class="intro">
@@ -60,7 +92,6 @@
             <h2 id="catalogTitle">Semua Item</h2>
             <p id="productCount" class="product-count" aria-live="polite">Memuat produk...</p>
           </div>
-          <span class="catalog-mark" aria-hidden="true">✦</span>
         </div>
         <div id="statusMessage" class="status-message" role="status" aria-live="polite">Memuat produk...</div>
         <nav id="categoryFilters" class="category-filters" aria-label="Filter kategori produk"></nav>
