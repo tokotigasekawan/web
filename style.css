@@ -174,6 +174,29 @@ button {
   color: #a11b2d;
 }
 
+.location-privacy-notice {
+  margin: 4px 0 2px;
+  padding: 11px 12px;
+  border: 1px solid #dceaf2;
+  border-radius: 10px;
+  color: #4f5b64;
+  background: #f2f8fb;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.location-privacy-notice strong {
+  display: block;
+  margin: 4px 0 0;
+  color: #243f50;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.location-privacy-notice .location-privacy-emphasis {
+  margin-top: 9px;
+}
+
 .otp-phone-description,
 .otp-demo-label {
   margin: 0 0 5px;
@@ -237,6 +260,83 @@ button {
   margin: -10px 0 16px;
   color: var(--muted);
   font-size: 11px;
+}
+
+.account-location-status {
+  margin: -10px 0 13px;
+  color: #26734d;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.account-location-status:empty {
+  display: none;
+}
+
+.account-location-status.is-error {
+  color: #a11b2d;
+}
+
+.profile-dialog {
+  width: min(100% - 32px, 400px);
+  padding: 20px;
+  border: 1px solid #e9ebef;
+  border-radius: 18px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 20px 70px #17192340;
+}
+
+.profile-dialog::backdrop {
+  background: #15182180;
+  backdrop-filter: blur(2px);
+}
+
+.profile-details {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.profile-details div {
+  display: grid;
+  gap: 5px;
+}
+
+.profile-details dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.profile-details dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.profile-details a {
+  color: var(--blue-dark);
+}
+
+.profile-details small {
+  color: var(--muted);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.profile-refresh-button {
+  width: 100%;
+}
+
+.profile-location-privacy-notice {
+  margin: 0 0 14px;
+}
+
+.profile-dialog .account-location-status {
+  margin: 10px 0 0;
+  text-align: center;
 }
 
 .account-session strong {
@@ -386,6 +486,11 @@ button {
   box-shadow: 12px 0 40px #17192326;
 }
 
+.branch-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
 .branch-dialog::backdrop {
   background: #15182180;
 }
@@ -409,6 +514,51 @@ button {
 .branch-options {
   display: grid;
   gap: 9px;
+}
+
+.branch-dialog-footer {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.profile-menu-button {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 11px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-menu-button span:last-child {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.profile-menu-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 12px;
+}
+
+.menu-logout-button {
+  justify-self: start;
+  padding-left: 12px;
 }
 
 .branch-option {

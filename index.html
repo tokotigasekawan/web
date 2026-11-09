@@ -45,6 +45,12 @@
             placeholder="Nama lengkap"
             required
           />
+          <p class="location-privacy-notice">
+            Lokasi GPS digunakan untuk membantu pengiriman.
+            <strong>Lokasi hanya diambil saat Anda menekan tombol dan mengizinkan akses</strong>
+            <strong class="location-privacy-emphasis">Kami tidak melacak lokasi secara terus-menerus.</strong>
+            Lokasi akan disertakan dalam pesan pesanan WhatsApp.
+          </p>
           <button id="getLocationButton" class="auth-secondary-button" type="button">Ambil lokasi GPS</button>
           <p id="locationStatus" class="location-status" role="status" aria-live="polite">Lokasi GPS wajib untuk pendaftaran.</p>
           <button id="registerButton" class="auth-submit-button" type="submit" disabled>Daftar dan kirim kode OTP simulasi</button>
@@ -123,6 +129,47 @@
           <span class="branch-check" aria-hidden="true">✓</span>
         </button>
       </div>
+      <div class="branch-dialog-footer">
+        <button id="openProfileButton" class="profile-menu-button" type="button">
+          <span class="profile-menu-icon" aria-hidden="true">●</span>
+          <span>Profil pelanggan</span>
+          <span aria-hidden="true">›</span>
+        </button>
+        <button id="logoutButton" class="auth-text-button menu-logout-button" type="button">Keluar</button>
+      </div>
+    </dialog>
+
+    <dialog id="profileDialog" class="profile-dialog" aria-labelledby="profileDialogTitle">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">AKUN PELANGGAN</p>
+          <h2 id="profileDialogTitle">Profil saya</h2>
+        </div>
+        <button id="closeProfileButton" class="close-button" type="button" aria-label="Tutup profil">×</button>
+      </div>
+      <dl class="profile-details">
+        <div>
+          <dt>Nama</dt>
+          <dd id="profileName"></dd>
+        </div>
+        <div>
+          <dt>Nomor HP</dt>
+          <dd id="profilePhone"></dd>
+        </div>
+        <div>
+          <dt>Lokasi GPS</dt>
+          <dd><a id="profileLocationLink" href="#" target="_blank" rel="noopener noreferrer">Lihat lokasi di Google Maps</a></dd>
+          <small id="profileCoordinates"></small>
+        </div>
+      </dl>
+      <p class="location-privacy-notice profile-location-privacy-notice">
+        Tekan tombol di bawah untuk mengambil satu titik GPS terbaru.
+        <strong>Lokasi hanya diperbarui saat Anda menekan tombol dan mengizinkan akses</strong>
+        <strong class="location-privacy-emphasis">Kami tidak melacak lokasi secara terus-menerus.</strong>
+        Lokasi terbaru akan digunakan untuk membantu pengiriman dan disertakan dalam pesan pesanan WhatsApp.
+      </p>
+      <button id="refreshLocationButton" class="auth-submit-button profile-refresh-button" type="button">Perbarui GPS</button>
+      <p id="accountLocationStatus" class="account-location-status" role="status" aria-live="polite"></p>
     </dialog>
 
     <main>
@@ -133,10 +180,6 @@
         </div>
         <h1>Temukan produk pilihanmu</h1>
         <p class="intro-copy">Cari produk dan pesan dengan harga sesuai jumlah pembelian.</p>
-        <div class="account-session">
-          <span>Masuk sebagai <strong id="signedInCustomer"></strong></span>
-          <button id="logoutButton" class="auth-text-button" type="button">Keluar</button>
-        </div>
         <label class="search-box">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="10.8" cy="10.8" r="6.8" />
