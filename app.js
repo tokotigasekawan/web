@@ -42,6 +42,7 @@ const emptyCartMessage = document.querySelector("#emptyCartMessage");
 const categorySuggestionDialog = document.querySelector("#categorySuggestionDialog");
 const whatsappOrderButton = document.querySelector("#whatsappOrderButton");
 const backToTopButton = document.querySelector("#backToTopButton");
+const cartButton = document.querySelector("#openCartButton");
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -493,14 +494,19 @@ function renderCart() {
     const quantity = getCartQuantity(product.id);
     const unitPrice = getPriceTier(product, quantity).price;
     const lineTotal = unitPrice * quantity;
-    return `*${index + 1}. ${product.name} - ${formatQuantity(quantity)} ${product.unit} - Subtotal: ${formatPrice(lineTotal)}*`;
+    return [
+      `${index + 1}. ${product.name}`,
+      `= ${formatQuantity(quantity)} ${product.unit} x ${formatAmount(unitPrice)} = *${formatAmount(lineTotal)}*`,
+    ].join("\n");
   });
   const orderMessage = [
     `HALO TOKO TIGA SEKAWAN ${activeBranch.name.toLocaleUpperCase("id-ID")} saya pesan dengan rincian di bawah ini :`,
     "",
     ...orderLines,
     "",
-    `*TOTAL: ${formatPrice(total)}*`,
+    `TOTAL: *${formatPrice(total)}*`,
+    "",
+    "terimakasih",
   ].join("\n");
   whatsappOrderButton.href = cartProducts.length
     ? `https://wa.me/6285559156569?text=${encodeURIComponent(orderMessage)}`
@@ -549,6 +555,66 @@ function bindQuantityInputEvents(container) {
 }
 
 bindQuantityInputEvents(cartItems);
+
+function animateProductToCart(productCard) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const sourceImage = productCard.querySelector(".product-image");
+  const sourceRect = sourceImage?.naturalWidth
+    ? sourceImage.getBoundingClientRect()
+    : productCard.querySelector(".add-button").getBoundingClientRect();
+  const targetRect = cartButton.getBoundingClientRect();
+  const size = 54;
+  const startX = sourceRect.left + (sourceRect.width - size) / 2;
+  const startY = sourceRect.top + (sourceRect.height - size) / 2;
+  const endX = targetRect.left + (targetRect.width - size) / 2;
+  const endY = targetRect.top + (targetRect.height - size) / 2;
+  const flyer = sourceImage?.naturalWidth
+    ? document.createElement("img")
+    : document.createElement("span");
+
+  if (flyer instanceof HTMLImageElement) {
+    flyer.src = sourceImage.currentSrc || sourceImage.src;
+    flyer.alt = "";
+  } else {
+    flyer.textContent = "+";
+  }
+  flyer.classList.add("cart-flight-item");
+  Object.assign(flyer.style, {
+    left: `${startX}px`,
+    top: `${startY}px`,
+    width: `${size}px`,
+    height: `${size}px`,
+  });
+  document.body.append(flyer);
+
+  if (typeof flyer.animate !== "function") {
+    flyer.remove();
+    return;
+  }
+
+  const animation = flyer.animate([
+    { transform: "translate(0, 0) scale(1) rotate(0deg)", opacity: 1 },
+    { transform: `translate(${(endX - startX) * 0.55}px, ${(endY - startY) * 0.55}px) scale(0.75) rotate(10deg)`, opacity: 1, offset: 0.65 },
+    { transform: `translate(${endX - startX}px, ${endY - startY}px) scale(0.25) rotate(18deg)`, opacity: 0.15 },
+  ], {
+    duration: 560,
+    easing: "cubic-bezier(0.22, 0.75, 0.3, 1)",
+    fill: "forwards",
+  });
+
+  animation.addEventListener("finish", () => {
+    flyer.remove();
+    cartButton.classList.remove("cart-button--bump");
+    void cartButton.offsetWidth;
+    cartButton.classList.add("cart-button--bump");
+  }, { once: true });
+  cartButton.addEventListener("animationend", (event) => {
+    if (event.animationName === "cart-button-bump") {
+      cartButton.classList.remove("cart-button--bump");
+    }
+  }, { once: true });
+}
 
 productGrid.addEventListener("focusin", (event) => {
   if (event.target.matches("[data-add-quantity]")) event.target.select();
@@ -624,6 +690,7 @@ productGrid.addEventListener("click", (event) => {
     const productId = Number(addButton.dataset.addId);
     const addQuantity = addQuantities.get(productId) ?? 1;
     if (addQuantity <= 0) return;
+    animateProductToCart(addButton.closest(".product-card"));
     cart.set(productId, getCartQuantity(productId) + addQuantity);
     addQuantities.set(productId, 1);
     render();

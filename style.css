@@ -260,6 +260,35 @@ button {
   stroke-width: 1.8;
 }
 
+.cart-button--bump {
+  animation: cart-button-bump 260ms ease-out;
+}
+
+@keyframes cart-button-bump {
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.cart-flight-item {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  padding: 5px;
+  place-items: center;
+  border: 1px solid #e6e9ee;
+  border-radius: 12px;
+  color: #fff;
+  background: var(--blue);
+  box-shadow: 0 6px 18px #17192330;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  object-fit: contain;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
 .cart-count {
   position: absolute;
   top: -3px;
