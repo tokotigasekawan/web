@@ -43,6 +43,25 @@ const categorySuggestionDialog = document.querySelector("#categorySuggestionDial
 const whatsappOrderButton = document.querySelector("#whatsappOrderButton");
 const backToTopButton = document.querySelector("#backToTopButton");
 const cartButton = document.querySelector("#openCartButton");
+const authGate = document.querySelector("#authGate");
+const appShell = document.querySelector("#appShell");
+const phoneForm = document.querySelector("#phoneForm");
+const phoneInput = document.querySelector("#phoneInput");
+const registrationForm = document.querySelector("#registrationForm");
+const customerNameInput = document.querySelector("#customerNameInput");
+const getLocationButton = document.querySelector("#getLocationButton");
+const registerButton = document.querySelector("#registerButton");
+const locationStatus = document.querySelector("#locationStatus");
+const otpPanel = document.querySelector("#otpPanel");
+const otpInput = document.querySelector("#otpInput");
+const otpDemoCode = document.querySelector("#otpDemoCode");
+const authMessage = document.querySelector("#authMessage");
+const authSessionKey = "tts-demo-auth-profile";
+const customerProfilesKey = "tts-demo-customer-profiles";
+let pendingCustomer = null;
+let pendingOtp = "";
+let registrationLocation = null;
+let activeCustomer = null;
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -52,6 +71,233 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#39;",
   })[character]);
+}
+
+function normalizePhone(phone) {
+  const trimmedPhone = phone.trim();
+  const normalizedPhone = trimmedPhone.replace(/[\s()+-]/g, "");
+  const digitsOnly = normalizedPhone.replace(/\D/g, "");
+  if (!/^\+?\d+$/.test(normalizedPhone) || digitsOnly.length < 10 || digitsOnly.length > 15) {
+    return null;
+  }
+  return { phone: trimmedPhone, phoneKey: digitsOnly };
+}
+
+function readCustomerProfiles() {
+  const storedProfiles = localStorage.getItem(customerProfilesKey);
+  if (!storedProfiles) return {};
+
+  let profiles;
+  try {
+    profiles = JSON.parse(storedProfiles);
+  } catch {
+    throw new Error("Data profil simulasi tidak bisa dibaca. Hapus data situs lalu daftar kembali.");
+  }
+  if (!profiles || typeof profiles !== "object" || Array.isArray(profiles)) {
+    throw new Error("Format profil simulasi tidak valid. Hapus data situs lalu daftar kembali.");
+  }
+  return profiles;
+}
+
+function getCustomerProfile(phoneKey) {
+  const profiles = readCustomerProfiles();
+  const profile = profiles[phoneKey];
+  if (
+    !profile
+    || profile.phoneKey !== phoneKey
+    || typeof profile.name !== "string"
+    || typeof profile.phone !== "string"
+    || !profile.location
+    || !Number.isFinite(profile.location.latitude)
+    || !Number.isFinite(profile.location.longitude)
+  ) {
+    return null;
+  }
+  return profile;
+}
+
+function saveCustomerProfile(customer) {
+  const profiles = readCustomerProfiles();
+  profiles[customer.phoneKey] = customer;
+  localStorage.setItem(customerProfilesKey, JSON.stringify(profiles));
+}
+
+function startCatalogSession(customer) {
+  activeCustomer = customer;
+  sessionStorage.setItem(authSessionKey, customer.phoneKey);
+  document.querySelector("#signedInCustomer").textContent = `${customer.name} (${customer.phone})`;
+  authGate.hidden = true;
+  appShell.hidden = false;
+  loadProductFile(BRANCHES.find((branch) => branch.id === activeBranchId));
+}
+
+function resetLoginForm() {
+  pendingCustomer = null;
+  pendingOtp = "";
+  phoneForm.hidden = false;
+  registrationForm.hidden = true;
+  otpPanel.hidden = true;
+  registrationLocation = null;
+  registerButton.disabled = true;
+  customerNameInput.value = "";
+  locationStatus.textContent = "Lokasi GPS wajib untuk pendaftaran.";
+  locationStatus.classList.remove("is-error");
+  otpInput.value = "";
+  authMessage.textContent = "";
+  document.querySelector("#authTitle").textContent = "Masuk ke Toko Tiga Sekawan";
+}
+
+phoneForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const phone = normalizePhone(phoneInput.value);
+  if (!phone) {
+    authMessage.textContent = "Periksa nomor HP. Masukkan 10 sampai 15 digit angka.";
+    return;
+  }
+
+  try {
+    const existingCustomer = getCustomerProfile(phone.phoneKey);
+    authMessage.textContent = "";
+    if (existingCustomer) {
+      requestDemoOtp(existingCustomer);
+      return;
+    }
+
+    pendingCustomer = phone;
+    phoneForm.hidden = true;
+    registrationForm.hidden = false;
+    document.querySelector("#authTitle").textContent = "Daftar pelanggan";
+    locationStatus.textContent = "Lokasi GPS wajib untuk pendaftaran.";
+    customerNameInput.focus();
+  } catch (error) {
+    authMessage.textContent = error.message;
+  }
+});
+
+function requestDemoOtp(customer) {
+  pendingCustomer = customer;
+  pendingOtp = String(Math.floor(100000 + Math.random() * 900000));
+  otpDemoCode.textContent = pendingOtp;
+  document.querySelector("#otpPhoneDescription").textContent = `Kode simulasi untuk ${customer.phone}`;
+  phoneForm.hidden = true;
+  registrationForm.hidden = true;
+  otpPanel.hidden = false;
+  authMessage.textContent = "";
+  otpInput.value = "";
+  otpInput.focus();
+}
+
+getLocationButton.addEventListener("click", () => {
+  if (!window.isSecureContext || !navigator.geolocation) {
+    locationStatus.textContent = "GPS memerlukan HTTPS. Untuk tes lewat jaringan Wi-Fi, buka situs melalui alamat HTTPS.";
+    locationStatus.classList.add("is-error");
+    return;
+  }
+
+  getLocationButton.disabled = true;
+  registerButton.disabled = true;
+  locationStatus.textContent = "Meminta izin lokasi dari perangkat...";
+  locationStatus.classList.remove("is-error");
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      registrationLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      };
+      locationStatus.textContent = `Lokasi berhasil diambil (akurasi sekitar ${Math.round(position.coords.accuracy)} meter).`;
+      getLocationButton.disabled = false;
+      registerButton.disabled = false;
+    },
+    (error) => {
+      registrationLocation = null;
+      registerButton.disabled = true;
+      getLocationButton.disabled = false;
+      locationStatus.textContent = error.code === error.PERMISSION_DENIED
+        ? "Izin lokasi ditolak. Izinkan akses lokasi di pengaturan browser untuk melanjutkan."
+        : error.code === error.POSITION_UNAVAILABLE
+          ? "Lokasi perangkat tidak tersedia. Periksa GPS dan coba lagi."
+          : "Permintaan lokasi terlalu lama. Coba ambil lokasi sekali lagi.";
+      locationStatus.classList.add("is-error");
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+  );
+});
+
+registrationForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = customerNameInput.value.trim();
+  if (!name) {
+    authMessage.textContent = "Nama pelanggan wajib diisi.";
+    customerNameInput.focus();
+    return;
+  }
+  if (!registrationLocation || !pendingCustomer) {
+    authMessage.textContent = "Ambil lokasi GPS terlebih dahulu untuk melanjutkan pendaftaran.";
+    return;
+  }
+
+  requestDemoOtp({
+    ...pendingCustomer,
+    name,
+    location: registrationLocation,
+  });
+});
+
+document.querySelector("#otpForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (otpInput.value !== pendingOtp || !pendingCustomer) {
+    authMessage.textContent = "Kode OTP belum cocok. Periksa kode simulasi di atas dan coba lagi.";
+    otpInput.select();
+    return;
+  }
+
+  try {
+    if (pendingCustomer.name && pendingCustomer.location) {
+      saveCustomerProfile(pendingCustomer);
+    }
+    startCatalogSession(getCustomerProfile(pendingCustomer.phoneKey));
+  } catch (error) {
+    authMessage.textContent = error.message;
+  }
+});
+
+document.querySelector("#changePhoneButton").addEventListener("click", () => {
+  resetLoginForm();
+  phoneInput.focus();
+});
+
+document.querySelector("#logoutButton").addEventListener("click", () => {
+  sessionStorage.removeItem(authSessionKey);
+  activeCustomer = null;
+  products = [];
+  cart = new Map();
+  branchCarts.clear();
+  addQuantities = new Map();
+  branchAddQuantities.clear();
+  document.querySelector("#signedInCustomer").textContent = "";
+  appShell.hidden = true;
+  authGate.hidden = false;
+  resetLoginForm();
+  phoneInput.focus();
+});
+
+try {
+  const existingDemoSession = sessionStorage.getItem(authSessionKey);
+  const existingCustomer = existingDemoSession
+    ? getCustomerProfile(existingDemoSession)
+    : null;
+  if (existingCustomer) {
+    startCatalogSession(existingCustomer);
+  } else {
+    sessionStorage.removeItem(authSessionKey);
+    authGate.hidden = false;
+    appShell.hidden = true;
+  }
+} catch (error) {
+  authMessage.textContent = error.message;
+  authGate.hidden = false;
+  appShell.hidden = true;
 }
 
 function formatPrice(price) {
@@ -501,8 +747,10 @@ function renderCart() {
   });
   const orderMessage = [
     `HALO TOKO TIGA SEKAWAN ${activeBranch.name.toLocaleUpperCase("id-ID")} saya pesan dengan rincian di bawah ini :`,
+    `Nama: ${activeCustomer.name}`,
+    `Lokasi: https://maps.google.com/?q=${activeCustomer.location.latitude},${activeCustomer.location.longitude}`,
     "",
-    ...orderLines,
+    orderLines.join("\n\n"),
     "",
     `TOTAL: *${formatPrice(total)}*`,
     "",
@@ -881,5 +1129,3 @@ if ("serviceWorker" in navigator) {
       .catch((error) => console.error("Gagal memperbarui service worker PWA.", error));
   });
 }
-
-loadProductFile(BRANCHES.find((branch) => branch.id === activeBranchId));

@@ -17,6 +17,64 @@
     <script src="app.js" defer></script>
   </head>
   <body>
+    <section id="authGate" class="auth-gate" aria-labelledby="authTitle">
+      <div class="auth-card">
+        <img class="auth-logo" src="Aset/LOGO%20TTS.png" alt="Logo Toko Tiga Sekawan" />
+        <p class="eyebrow">AKUN PELANGGAN</p>
+        <h1 id="authTitle">Masuk ke Toko Tiga Sekawan</h1>
+        <p class="auth-description">Masukkan nomor HP. Pelanggan baru perlu mendaftar dengan nama dan lokasi GPS.</p>
+        <form id="phoneForm" class="auth-form">
+          <label for="phoneInput">Nomor HP</label>
+          <input
+            id="phoneInput"
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="Contoh: 08xxxxxxxxxx"
+            required
+          />
+          <button class="auth-submit-button" type="submit">Lanjut</button>
+        </form>
+        <form id="registrationForm" class="auth-form" hidden>
+          <label for="customerNameInput">Nama pelanggan</label>
+          <input
+            id="customerNameInput"
+            type="text"
+            autocomplete="name"
+            maxlength="80"
+            placeholder="Nama lengkap"
+            required
+          />
+          <button id="getLocationButton" class="auth-secondary-button" type="button">Ambil lokasi GPS</button>
+          <p id="locationStatus" class="location-status" role="status" aria-live="polite">Lokasi GPS wajib untuk pendaftaran.</p>
+          <button id="registerButton" class="auth-submit-button" type="submit" disabled>Daftar dan kirim kode OTP simulasi</button>
+        </form>
+        <div id="otpPanel" hidden>
+          <p id="otpPhoneDescription" class="otp-phone-description"></p>
+          <p class="otp-demo-label">Kode OTP simulasi (hanya untuk pengujian)</p>
+          <output id="otpDemoCode" class="otp-demo-code"></output>
+          <form id="otpForm" class="auth-form">
+            <label for="otpInput">Masukkan 6 digit kode</label>
+            <input
+              id="otpInput"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              placeholder="000000"
+              required
+            />
+            <button class="auth-submit-button" type="submit">Verifikasi dan buka katalog</button>
+          </form>
+          <button id="changePhoneButton" class="auth-text-button" type="button">Ganti nomor HP</button>
+        </div>
+        <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+        <p class="auth-demo-notice">Simulasi lokal: OTP tidak dikirim sungguhan. Nama, nomor HP, dan lokasi tersimpan di browser ini saja; lokasi baru dibagikan ke toko saat pesanan dikirim lewat WhatsApp. Belum aman untuk penggunaan pelanggan sungguhan.</p>
+      </div>
+    </section>
+
+    <div id="appShell" hidden>
     <header class="site-header">
       <button
         class="branch-menu-button"
@@ -75,6 +133,10 @@
         </div>
         <h1>Temukan produk pilihanmu</h1>
         <p class="intro-copy">Cari produk dan pesan dengan harga sesuai jumlah pembelian.</p>
+        <div class="account-session">
+          <span>Masuk sebagai <strong id="signedInCustomer"></strong></span>
+          <button id="logoutButton" class="auth-text-button" type="button">Keluar</button>
+        </div>
         <label class="search-box">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="10.8" cy="10.8" r="6.8" />
@@ -155,5 +217,6 @@
       <span class="footer-dot" aria-hidden="true"></span>
       Harga terbaik untuk belanja lebih banyak
     </footer>
+    </div>
   </body>
 </html>
