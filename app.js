@@ -262,7 +262,7 @@ refreshLocationButton.addEventListener("click", () => {
 
 function startCatalogSession(customer) {
   activeCustomer = customer;
-  sessionStorage.setItem(authSessionKey, customer.phoneKey);
+  localStorage.setItem(authSessionKey, customer.phoneKey);
   renderCustomerProfile();
   welcomeGreeting.textContent = `Halo ${customer.name},`;
   accountLocationStatus.textContent = "";
@@ -410,7 +410,7 @@ document.querySelector("#changePhoneButton").addEventListener("click", () => {
 
 document.querySelector("#logoutButton").addEventListener("click", () => {
   branchDialog.close();
-  sessionStorage.removeItem(authSessionKey);
+  localStorage.removeItem(authSessionKey);
   activeCustomer = null;
   products = [];
   cart = new Map();
@@ -424,14 +424,14 @@ document.querySelector("#logoutButton").addEventListener("click", () => {
 });
 
 try {
-  const existingDemoSession = sessionStorage.getItem(authSessionKey);
+  const existingDemoSession = localStorage.getItem(authSessionKey);
   const existingCustomer = existingDemoSession
     ? getCustomerProfile(existingDemoSession)
     : null;
   if (existingCustomer) {
     startCatalogSession(existingCustomer);
   } else {
-    sessionStorage.removeItem(authSessionKey);
+    localStorage.removeItem(authSessionKey);
     authGate.hidden = false;
     appShell.hidden = true;
   }
